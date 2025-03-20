@@ -17,6 +17,6 @@ module.exports = function (dbModel) {
 	let model = dbModel.conn.model(collectionName, schema, collectionName)
 
 	model.removeOne = (session, filter) => sendToTrash(dbModel, collectionName, session, filter)
-	model.relations = { items: 'itemType' }
+	model.relations = { itemGroups: 'itemMainGroup' }
 	return model
 }

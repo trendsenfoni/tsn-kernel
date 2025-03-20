@@ -27,8 +27,9 @@ module.exports = (dbModel, sessionDoc, req) =>
 
 function getOne(dbModel, sessionDoc, req) {
   return new Promise((resolve, reject) => {
-    dbModel.itemTypes
+    dbModel.itemGroups
       .findOne({ _id: req.params.param1 })
+      .populate('itemMainGroup')
       .then(resolve)
       .catch(reject)
   })
@@ -38,22 +39,13 @@ function getList(dbModel, sessionDoc, req) {
   return new Promise((resolve, reject) => {
     let options = {
       page: req.query.page || 1,
-      limit: req.query.pageSize || 10
+      limit: req.query.pageSize || 10,
+      populate: ['itemMainGroup']
     }
     let filter = {}
-    if (req.query.search) {
-      filter.$or = [
-        { name: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-        { article: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-      ]
-    }
-    console.log('filter:', filter.$or)
-    dbModel.itemTypes
+    dbModel.itemGroups
       .paginate(filter, options)
-      .then(result => {
-        console.log('result:', result)
-        resolve(result)
-      }).catch(reject)
+      .then(resolve).catch(reject)
   })
 }
 
@@ -64,24 +56,20 @@ function post(dbModel, sessionDoc, req) {
       let data = req.body || {}
       delete data._id
       if (!data.name) return reject('name required')
-
-      console.log('buraya geldi1')
-      const c = await dbModel.itemTypes.countDocuments({ name: data.name })
-      console.log('c:', c)
+      if (!data.itemMainGroup) return reject('main group required')
+      const mainGroupDoc = await dbModel.itemMainGroups.findOne({ _id: data.itemMainGroup })
+      if (!mainGroupDoc) return reject(`main group not found`)
+      const c = await dbModel.itemGroups.countDocuments({ name: data.name })
       if (c > 0) return reject(`name already exists`)
 
-      const newDoc = new dbModel.itemTypes(data)
+      const newDoc = new dbModel.itemGroups(data)
 
 
       if (!epValidateSync(newDoc, reject)) return
-      console.log('buraya geldi2')
-      newDoc.save().then(result => {
-        console.log('result:', result)
-        resolve(result)
-      }).catch(err => {
-        console.log('err:', err)
-        reject(err)
-      })
+      newDoc.save()
+        .then(resolve)
+        .catch(reject)
+
     } catch (err) {
       reject(err)
     }
@@ -96,15 +84,13 @@ function put(dbModel, sessionDoc, req) {
       if (req.params.param1 == undefined) return restError.param1(req, reject)
       let data = req.body || {}
       delete data._id
-      delete data.dbHost
-      delete data.dbName
 
-      let doc = await dbModel.itemTypes.findOne({ _id: req.params.param1 })
+      let doc = await dbModel.itemGroups.findOne({ _id: req.params.param1 })
       if (!doc) return reject(`record not found`)
 
       doc = Object.assign(doc, data)
       if (!epValidateSync(doc, reject)) return
-      if (await dbModel.itemTypes.countDocuments({ name: doc.name, _id: { $ne: doc._id } }) > 0)
+      if (await dbModel.itemGroups.countDocuments({ name: doc.name, _id: { $ne: doc._id } }) > 0)
         return reject(`name already exists`)
 
       doc.save()
@@ -122,7 +108,7 @@ function deleteItem(dbModel, sessionDoc, req) {
     try {
       if (req.params.param1 == undefined) return restError.param1(req, reject)
 
-      dbModel.itemTypes.removeOne(sessionDoc, { _id: req.params.param1 })
+      dbModel.itemGroups.removeOne(sessionDoc, { _id: req.params.param1 })
         .then(resolve)
         .catch(reject)
     } catch (err) {
