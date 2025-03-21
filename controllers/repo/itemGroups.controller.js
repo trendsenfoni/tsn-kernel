@@ -36,16 +36,29 @@ function getOne(dbModel, sessionDoc, req) {
 }
 
 function getList(dbModel, sessionDoc, req) {
-  return new Promise((resolve, reject) => {
-    let options = {
-      page: req.query.page || 1,
-      limit: req.query.pageSize || 10,
-      populate: ['itemMainGroup']
+  return new Promise(async (resolve, reject) => {
+    try {
+      let options = {
+        page: req.query.page || 1,
+        limit: req.query.pageSize || 10,
+        populate: ['itemMainGroup']
+      }
+      let filter = {}
+      if (req.query.itemMainGroup && req.query.itemMainGroup != '*') filter.itemMainGroup = req.query.itemMainGroup
+      if (req.query.search) {
+        filter.$or = [
+          { name: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+          { article: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+        ]
+      }
+      dbModel.itemGroups
+        .paginate(filter, options)
+        .then(resolve)
+        .catch(reject)
+    } catch (err) {
+      reject(err)
     }
-    let filter = {}
-    dbModel.itemGroups
-      .paginate(filter, options)
-      .then(resolve).catch(reject)
+
   })
 }
 

@@ -47,13 +47,11 @@ function getList(dbModel, sessionDoc, req) {
         { article: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
       ]
     }
-    console.log('filter:', filter.$or)
     dbModel.itemMainGroups
       .paginate(filter, options)
-      .then(result => {
-        console.log('result:', result)
-        resolve(result)
-      }).catch(reject)
+      .then(resolve)
+      .catch(reject)
+
   })
 }
 

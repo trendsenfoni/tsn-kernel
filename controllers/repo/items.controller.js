@@ -29,26 +29,50 @@ function getOne(dbModel, sessionDoc, req) {
   return new Promise((resolve, reject) => {
     dbModel.items
       .findOne({ _id: req.params.param1 })
-      .populate(['itemType', 'itemQuality'])
+      .populate([{
+        path: 'itemGroup',
+        populate: [{
+          path: 'itemMainGroup'
+        }]
+      }])
       .then(resolve)
       .catch(reject)
   })
 }
 
 function getList(dbModel, sessionDoc, req) {
-  return new Promise((resolve, reject) => {
-    let options = {
-      page: req.query.page || 1,
-      limit: req.query.pageSize || 10,
-      populate: [
-        { path: 'itemType', select: '_id name article' },
-        { path: 'itemQuality', select: '_id name article' }
-      ]
+  return new Promise(async (resolve, reject) => {
+    try {
+      let options = {
+        page: req.query.page || 1,
+        limit: req.query.pageSize || 10,
+        populate: [{
+          path: 'itemGroup',
+          populate: [{ path: 'itemMainGroup' }]
+        }]
+      }
+      let filter = {}
+      if (req.query.itemGroup && req.query.itemGroup != '*') {
+        filter.itemGroup = req.query.itemGroup
+      } else if (req.query.itemMainGroup) {
+        const groupList = (await dbModel.itemGroups.find({ itemMainGroup: req.query.itemMainGroup })).map(e => e._id)
+        console.log(`groupList:`, groupList)
+        filter.itemGroup = { $in: groupList }
+      }
+      if (req.query.search) {
+        filter.$or = [
+          { name: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+          { description: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+        ]
+      }
+      dbModel.items
+        .paginate(filter, options)
+        .then(resolve).catch(reject)
+
+    } catch (err) {
+      reject(err)
     }
-    let filter = {}
-    dbModel.items
-      .paginate(filter, options)
-      .then(resolve).catch(reject)
+
   })
 }
 
@@ -58,8 +82,7 @@ function post(dbModel, sessionDoc, req) {
 
       let data = req.body || {}
       delete data._id
-      if (!data.itemType) return reject('item type required')
-      if (!data.itemQuality) return reject('item quality required')
+      if (!data.itemGroup) return reject('item group required')
       if (!data.name) return reject('name required')
 
       const c = await dbModel.items.countDocuments({ name: data.name })
@@ -69,14 +92,9 @@ function post(dbModel, sessionDoc, req) {
       const newDoc = new dbModel.items(data)
 
       if (!epValidateSync(newDoc, reject)) return
-      console.log('buraya geldi2')
-      newDoc.save().then(result => {
-        console.log('result:', result)
-        resolve(result)
-      }).catch(err => {
-        console.log('err:', err)
-        reject(err)
-      })
+      newDoc.save()
+        .then(resolve)
+        .catch(reject)
     } catch (err) {
       reject(err)
     }

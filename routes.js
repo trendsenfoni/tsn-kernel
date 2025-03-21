@@ -156,8 +156,8 @@ function repoControllers(app, route) {
           if (!sessionDoc) return reject('Unauthorized operation. {token} is empty. Please log in again.')
           if (!sessionDoc.db) return reject('Database not selected')
           const dbDoc = await db.databases.findOne({
-            $or: [{ owner: sessionDoc.member }, { 'team.teamMember': sessionDoc.member }]
-            , passive: false
+            $or: [{ owner: sessionDoc.member }, { 'team.teamMember': sessionDoc.member }],
+            _id: sessionDoc.db
           })
           if (!dbDoc) return reject(`Database not found`)
           getRepoDbModel(sessionDoc.member, dbDoc.dbName, 'server1')

@@ -3,7 +3,6 @@ module.exports = function (dbModel) {
 	const schema = mongoose.Schema(
 		{
 			itemGroup: { type: ObjectId, ref: 'itemGroups', required: true, index: true },
-
 			name: { type: String, unique: true },
 			description: { type: String, default: '' },
 			vatRate: { type: Number, default: 0 },
