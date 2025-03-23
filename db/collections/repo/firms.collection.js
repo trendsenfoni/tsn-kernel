@@ -2,12 +2,12 @@ const collectionName = path.basename(__filename, '.collection.js')
 module.exports = function (dbModel) {
 	let schema = mongoose.Schema(
 		{
-			type: { type: String, enum: ['customer', 'vendor'], index: true },
+			type: { type: String, enum: ['c', 'v', 'cv', 'cc'], index: true },
 			name: { type: String, required: true, unique: true },
 			// address: { type: ObjectId, ref: 'addresses', default: null },
 			// shippingAddress: { type: ObjectId, ref: 'addresses', default: null },
 			currency: { type: String, default: 'TRY', enum: ['USD', 'EUR', 'TRY', 'GBP', 'RUB', 'AZN', 'AED'] },
-			itemArticle: { type: String, default: '' },
+			article: { type: String, default: '' },
 			billingInfo: {
 				individual: { type: Boolean, default: false, index: true },
 				companyName: { type: String, default: '' },

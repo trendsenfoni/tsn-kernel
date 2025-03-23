@@ -52,6 +52,10 @@ function getList(dbModel, sessionDoc, req) {
         }]
       }
       let filter = {}
+      if (req.query.passive != undefined) {
+        if (req.query.passive.toString() == 'false') filter.passive = false
+        if (req.query.passive.toString() == 'true') filter.passive = true
+      }
       if (req.query.itemGroup && req.query.itemGroup != '*') {
         filter.itemGroup = req.query.itemGroup
       } else if (req.query.itemMainGroup) {

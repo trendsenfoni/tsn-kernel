@@ -41,8 +41,18 @@ function getList(dbModel, sessionDoc, req) {
       limit: req.query.pageSize || 10,
     }
     let filter = {}
-    if (req.query.type)
-      filter.type = req.query.type
+    if (req.query.passive != undefined) {
+      if (req.query.passive.toString() == 'false') filter.passive = false
+      if (req.query.passive.toString() == 'true') filter.passive = true
+    }
+    if (req.query.type) {
+      if (req.query.type == 'cv') {
+        filter.type = { $in: ['c', 'v', 'cv'] }
+      } else {
+        filter.type = req.query.type
+      }
+    }
+
     if (req.query.name || req.query.search)
       filter.name = { $regex: `.*${req.query.name || req.query.search}.*`, $options: 'i' }
 
