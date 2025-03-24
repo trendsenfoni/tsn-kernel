@@ -28,6 +28,10 @@ function getOne(dbModel, sessionDoc, req) {
   return new Promise((resolve, reject) => {
     dbModel.orders
       .findOne({ _id: req.params.param1 })
+      .populate([{
+        path: 'firm',
+
+      }])
       .then(async doc => {
         if (!doc) return reject('order document not found')
         let obj = doc.toJSON()
@@ -86,16 +90,20 @@ function post(dbModel, sessionDoc, req) {
 
       let data = req.body || {}
       delete data._id
-      if (!data.firm) return reject('firm required1')
-      if (!(data.ioType == 0 || data.ioType == 1)) return reject('ioType required')
-      if (!data.issueDate) return reject('issueDate required')
-      if (!data.documentNumber) return reject('documentNumber required')
+      if (!data.draft) {
+        if (!data.firm) return reject('firm required')
+        if (!(data.ioType == 0 || data.ioType == 1)) return reject('ioType required')
+        if (!data.issueDate) return reject('issueDate required')
+        if (!data.documentNumber) return reject('documentNumber required')
+        let firmDoc = await dbModel.firms.findOne({ _id: data.firm })
+        if (!firmDoc) return reject(`firm not found`)
+        if (await dbModel.orders.countDocuments({
+          documentNumber: data.documentNumber
+        }) > 0) return reject(`name already exists`)
+      }
 
-      let firmDoc = await dbModel.firms.findOne({ _id: data.firm })
-      if (!firmDoc) return reject(`firm not found`)
 
-      // if (await dbModel.orders.countDocuments({ firm: firmDoc._id, name: data.name }) > 0)
-      //   return reject(`name already exists`)
+
 
       const newDoc = new dbModel.orders(data)
 
@@ -126,9 +134,18 @@ function put(dbModel, sessionDoc, req) {
       if (!doc) return reject(`record not found`)
 
       doc = Object.assign(doc, data)
+      if (!data.draft) {
+        if (!data.firm) return reject('firm required')
+        if (!(data.ioType == 0 || data.ioType == 1)) return reject('ioType required')
+        if (!data.issueDate) return reject('issueDate required')
+        if (!data.documentNumber) return reject('documentNumber required')
+        let firmDoc = await dbModel.firms.findOne({ _id: data.firm })
+        if (!firmDoc) return reject(`firm not found`)
+        if (await dbModel.orders.countDocuments({
+          documentNumber: data.documentNumber, _id: { $ne: doc._id }
+        }) > 0) return reject(`name already exists`)
+      }
       if (!epValidateSync(doc, reject)) return
-      // if (await dbModel.orders.countDocuments({ name: doc.name, _id: { $ne: doc._id } }) > 0)
-      //   return reject(`name already exists`)
 
       doc.save()
         .then(resolve)

@@ -28,6 +28,7 @@ function getOne(dbModel, sessionDoc, req) {
   return new Promise((resolve, reject) => {
     dbModel.orderLines
       .findOne({ _id: req.params.param1 })
+      .populate([{ path: 'item' }])
       .then(resolve)
       .catch(reject)
   })
@@ -38,6 +39,9 @@ function getList(dbModel, sessionDoc, req) {
     let options = {
       page: req.query.page || 1,
       limit: req.query.pageSize || 10,
+      populate: [{
+        path: 'item'
+      }]
     }
     let filter = {}
     if (req.query.order)
@@ -55,18 +59,6 @@ function getList(dbModel, sessionDoc, req) {
     }
 
 
-    // if (req.query.search) {
-    //   filter.$or = [
-    //     { documentNumber: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-    //     { 'address.streetName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-    //     { 'address.buildingName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-    //     { 'address.citySubdivisionName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-    //     { 'address.cityName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-    //     { 'address.region': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-    //     { 'address.district': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-    //     { 'address.country.name': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-    //   ]
-    // }
 
     dbModel.orderLines
       .paginate(filter, options)
@@ -110,6 +102,7 @@ function post(dbModel, sessionDoc, req) {
       doc.save()
         .then(async newDoc => {
           await updateOrder(dbModel, newDoc.order)
+          newDoc = newDoc.populate(['item'])
           resolve(newDoc)
         })
         .catch(reject)
@@ -163,6 +156,7 @@ function put(dbModel, sessionDoc, req) {
       doc.save()
         .then(async newDoc => {
           await updateOrder(dbModel, newDoc.order)
+          newDoc = newDoc.populate(['item'])
           resolve(newDoc)
         })
         .catch(reject)

@@ -32,6 +32,7 @@ module.exports = function (dbModel) {
 					name: { type: String, default: '' }
 				}
 			},
+			draft: { type: Boolean, default: false, index: true },
 			closed: { type: Boolean, default: false, index: true },
 		},
 		{ versionKey: false, timestamps: true }
