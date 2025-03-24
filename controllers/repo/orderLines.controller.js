@@ -92,7 +92,10 @@ function post(dbModel, sessionDoc, req) {
       data.currency = orderDoc.currency
 
       const doc = new dbModel.orderLines(data)
-      doc.total = Math.round(100 * (doc.price || 0) * doc.quantity) / 100
+      if ((doc.total || 0) <= 0) {
+        doc.total = Math.round(100 * (doc.price || 0) * doc.quantity) / 100
+      }
+
       doc.taxAmount = Math.round(100 * doc.total * (doc.taxRate || 0) / 100) / 100
       doc.withHoldingTaxAmount = Math.round(100 * doc.taxAmount * (doc.withHoldingTaxRate || 0)) / 100
       doc.taxInclusiveTotal = Math.round(100 * (doc.total + doc.taxAmount - doc.withHoldingTaxAmount)) / 100
@@ -144,7 +147,10 @@ function put(dbModel, sessionDoc, req) {
       doc.issueDate = orderDoc.issueDate
       doc.issueTime = orderDoc.issueTime
       doc.currency = orderDoc.currency
-      doc.total = Math.round(100 * (doc.price || 0) * doc.quantity) / 100
+      if ((doc.total || 0) <= 0) {
+        doc.total = Math.round(100 * (doc.price || 0) * doc.quantity) / 100
+      }
+
       doc.taxAmount = Math.round(100 * doc.total * (doc.taxRate || 0) / 100) / 100
       doc.withHoldingTaxAmount = Math.round(100 * doc.taxAmount * (doc.withHoldingTaxRate || 0)) / 100
       doc.taxInclusiveTotal = Math.round(100 * (doc.total + doc.taxAmount - doc.withHoldingTaxAmount)) / 100
