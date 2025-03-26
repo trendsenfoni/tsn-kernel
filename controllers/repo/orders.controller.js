@@ -1,3 +1,4 @@
+const { updateOrder } = require('./bizdoc-helper')
 module.exports = (dbModel, sessionDoc, req) =>
   new Promise(async (resolve, reject) => {
 
@@ -111,8 +112,9 @@ function post(dbModel, sessionDoc, req) {
 
       newDoc.save()
         .then(async newDoc => {
-
-          resolve(newDoc)
+          await updateOrder(dbModel, newDoc._id)
+          const doc = await dbModel.orders.findOne({ _id: newDoc._id })
+          resolve(doc)
         })
         .catch(reject)
     } catch (err) {
@@ -148,7 +150,11 @@ function put(dbModel, sessionDoc, req) {
       if (!epValidateSync(doc, reject)) return
 
       doc.save()
-        .then(resolve)
+        .then(async newDoc => {
+          await updateOrder(dbModel, newDoc._id)
+          const doc = await dbModel.orders.findOne({ _id: newDoc._id })
+          resolve(doc)
+        })
         .catch(reject)
     } catch (err) {
       reject(err)
