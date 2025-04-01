@@ -27,7 +27,7 @@ module.exports = (dbModel, sessionDoc, req) =>
 
 function getOne(dbModel, sessionDoc, req) {
   return new Promise((resolve, reject) => {
-    dbModel.orderLines
+    dbModel.invoiceLines
       .findOne({ _id: req.params.param1 })
       .populate([{ path: 'item' }])
       .then(resolve)
@@ -45,8 +45,8 @@ function getList(dbModel, sessionDoc, req) {
       }]
     }
     let filter = {}
-    if (req.query.order)
-      filter.order = req.query.order
+    if (req.query.invoice)
+      filter.invoice = req.query.invoice
 
     if (req.query.type)
       filter.type = req.query.type
@@ -61,7 +61,7 @@ function getList(dbModel, sessionDoc, req) {
 
 
 
-    dbModel.orderLines
+    dbModel.invoiceLines
       .paginate(filter, options)
       .then(resolve).catch(reject)
   })
@@ -76,23 +76,23 @@ function post(dbModel, sessionDoc, req) {
       delete data.delivered
       delete data.remainder
 
-      if (!data.order) return reject('order required')
+      if (!data.invoice) return reject('invoice required')
       if (!data.item) return reject('item required')
-      if ((data.quantity || 0) <= 0) return reject('quantity must be greater than zero')
+      if ((data.invoicedQuantity || 0) <= 0) return reject('invoicedQuantity must be greater than zero')
       if ((data.price || 0) < 0) return reject('price must be greater or equal to zero')
 
-      let orderDoc = await dbModel.orders.findOne({ _id: data.order })
-      if (!orderDoc) return reject(`order not found`)
+      let invoiceDoc = await dbModel.invoices.findOne({ _id: data.invoice })
+      if (!invoiceDoc) return reject(`invoice not found`)
 
       let itemDoc = await dbModel.items.findOne({ _id: data.item })
       if (!itemDoc) return reject(`item not found`)
 
-      data.type = orderDoc.type
-      data.issueDate = orderDoc.issueDate
-      data.issueTime = orderDoc.issueTime
-      data.currency = orderDoc.currency
+      data.ioType = invoiceDoc.ioType
+      data.issueDate = invoiceDoc.issueDate
+      data.issueTime = invoiceDoc.issueTime
+      data.currency = invoiceDoc.currency
 
-      const doc = new dbModel.orderLines(data)
+      const doc = new dbModel.invoiceLines(data)
       if ((doc.total || 0) <= 0) {
         doc.total = Math.round(100 * (doc.price || 0) * doc.quantity) / 100
       }
@@ -105,7 +105,7 @@ function post(dbModel, sessionDoc, req) {
 
       doc.save()
         .then(async newDoc => {
-          await updateOrder(dbModel, newDoc.order._id)
+          await updateOrder(dbModel, newDoc.invoice._id)
           newDoc = newDoc.populate(['item'])
           resolve(newDoc)
         })
@@ -126,17 +126,17 @@ function put(dbModel, sessionDoc, req) {
       delete data._id
       delete data.delivered
       delete data.remainder
-      delete data.order
+      delete data.invoice
 
       if (!data.item) return reject('item required')
-      if ((data.quantity || 0) <= 0) return reject('quantity must be greater than zero')
+      if ((data.invoicedQuantity || 0) <= 0) return reject('invoicedQuantity must be greater than zero')
       if ((data.price || 0) < 0) return reject('price must be greater or equal to zero')
 
-      let doc = await dbModel.orderLines.findOne({ _id: req.params.param1 })
+      let doc = await dbModel.invoiceLines.findOne({ _id: req.params.param1 })
       if (!doc) return reject(`record not found`)
 
-      let orderDoc = await dbModel.orders.findOne({ _id: doc.order })
-      if (!orderDoc) return reject(`order not found`)
+      let invoiceDoc = await dbModel.invoices.findOne({ _id: doc.invoice })
+      if (!invoiceDoc) return reject(`invoice not found`)
 
       let itemDoc = await dbModel.items.findOne({ _id: data.item })
       if (!itemDoc) return reject(`item not found`)
@@ -144,25 +144,25 @@ function put(dbModel, sessionDoc, req) {
 
 
       doc = Object.assign(doc, data)
-      doc.type = orderDoc.type
-      doc.issueDate = orderDoc.issueDate
-      doc.issueTime = orderDoc.issueTime
-      doc.currency = orderDoc.currency
-      if ((doc.total || 0) <= 0) {
-        doc.total = Math.round(100 * (doc.price || 0) * doc.quantity) / 100
+      doc.ioType = invoiceDoc.ioType
+      doc.issueDate = invoiceDoc.issueDate
+      doc.issueTime = invoiceDoc.issueTime
+      doc.currency = invoiceDoc.currency
+      if ((doc.lineExtensionAmount || 0) <= 0) {
+        doc.lineExtensionAmount = Math.round(100 * (doc.price || 0) * doc.invoicedQuantity) / 100
       }
 
-      doc.taxAmount = Math.round(100 * doc.total * (doc.taxRate || 0) / 100) / 100
-      doc.withHoldingTaxAmount = Math.round(100 * doc.taxAmount * (doc.withHoldingTaxRate || 0)) / 100
-      doc.taxInclusiveTotal = Math.round(100 * (doc.total + doc.taxAmount - doc.withHoldingTaxAmount)) / 100
+      // doc.taxAmount = Math.round(100 * doc.total * (doc.taxRate || 0) / 100) / 100
+      // doc.withHoldingTaxAmount = Math.round(100 * doc.taxAmount * (doc.withHoldingTaxRate || 0)) / 100
+      // doc.taxInclusiveTotal = Math.round(100 * (doc.total + doc.taxAmount - doc.withHoldingTaxAmount)) / 100
 
       if (!epValidateSync(doc, reject)) return
-      // if (await dbModel.orderLines.countDocuments({ name: doc.name, _id: { $ne: doc._id } }) > 0)
+      // if (await dbModel.invoiceLines.countDocuments({ name: doc.name, _id: { $ne: doc._id } }) > 0)
       //   return reject(`name already exists`)
 
       doc.save()
         .then(async newDoc => {
-          await updateOrder(dbModel, newDoc.order._id)
+          await updateOrder(dbModel, newDoc.invoice._id)
           newDoc = newDoc.populate(['item'])
           resolve(newDoc)
         })
@@ -179,17 +179,17 @@ function deleteItem(dbModel, sessionDoc, req) {
     try {
       if (!req.params.param1)
         return restError.param1(req, reject)
-      const orderLinesDoc = await dbModel.orderLines.findOne({ _id: req.params.param1 })
-      if (!orderLinesDoc)
-        return reject(`orderLines document not found`)
+      const invoiceLinesDoc = await dbModel.invoiceLines.findOne({ _id: req.params.param1 })
+      if (!invoiceLinesDoc)
+        return reject(`invoiceLines document not found`)
 
 
 
 
-      dbModel.orderLines.removeOne(sessionDoc, { _id: req.params.param1 })
+      dbModel.invoiceLines.removeOne(sessionDoc, { _id: req.params.param1 })
         .then(async result => {
-          if (orderLinesDoc.order) {
-            await updateOrder(dbModel, orderLinesDoc.order)
+          if (invoiceLinesDoc.invoice) {
+            await updateOrder(dbModel, invoiceLinesDoc.invoice)
           }
 
           resolve(result)

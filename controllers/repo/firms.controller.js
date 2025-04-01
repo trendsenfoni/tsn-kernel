@@ -46,16 +46,23 @@ function getList(dbModel, sessionDoc, req) {
       if (req.query.passive.toString() == 'true') filter.passive = true
     }
     if (req.query.type) {
+
       if (req.query.type == 'cv') {
         filter.type = { $in: ['c', 'v', 'cv'] }
-      } else {
-        filter.type = req.query.type
+      } else if (req.query.type == 'c') {
+        filter.type = { $in: ['c', 'cv', 'cc'] }
+      } else if (req.query.type == 'v') {
+        filter.type = { $in: ['v', 'cv'] }
+      } else if (req.query.type == 'cc') {
+        filter.type = 'cc'
       }
+
     }
 
     if (req.query.name || req.query.search)
       filter.name = { $regex: `.*${req.query.name || req.query.search}.*`, $options: 'i' }
-
+    console.log(`req.query:`, req.query)
+    console.log(`filter:`, filter)
     dbModel.firms
       .paginate(filter, options)
       .then(resolve).catch(reject)

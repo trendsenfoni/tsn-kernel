@@ -3,7 +3,13 @@ module.exports = function (dbModel) {
 	const schema = mongoose.Schema(
 		{
 			firm: { type: ObjectId, ref: 'firms', default: null, index: true },
-			ioType: { type: Number, required: true, index: true },
+			// ioType: { type: Number, required: true, index: true },
+			type: {
+				type: String, required: true, index: true, enum: [
+					'sales', 'purchase', 'sales_proposal', 'purchase_proposal',
+					'request', 'transfer'
+				]
+			},
 			issueDate: { type: String, index: true, min: 10, max: 10, default: new Date().toISOString().substring(0, 10) },
 			documentNumber: { type: String, default: '' },
 			firmDocumentNumber: { type: String, default: '' },

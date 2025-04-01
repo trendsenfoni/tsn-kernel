@@ -2,14 +2,10 @@ const collectionName = path.basename(__filename, '.collection.js')
 module.exports = function (dbModel) {
 	const schema = mongoose.Schema(
 		{
-			order: { type: ObjectId, ref: 'orders', required: true, index: true },
-			type: {
-				type: String, required: true, index: true, enum: [
-					'sales', 'purchase', 'sales_proposal', 'purchase_proposal',
-					'request', 'transfer'
-				]
-			},
+			invoice: { type: ObjectId, ref: 'invoices', required: true, index: true },
+			ioType: { type: Number, required: true, index: true },
 			issueDate: { type: String, index: true, min: 10, max: 10, default: new Date().toISOString().substring(0, 10) },
+			issueTime: { type: String, index: true, min: 8, max: 22, default: new Date().toISOString().substring(11).replace('Z', '+00:00') },
 			item: { type: ObjectId, ref: 'items', index: true },
 			description: { type: String, default: '' },
 			quantity: { type: Number, default: 0 },

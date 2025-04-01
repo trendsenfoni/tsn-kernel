@@ -1,4 +1,6 @@
+const { couldStartTrivia } = require('typescript')
 const { updateOrder } = require('./bizdoc-helper')
+const { v4 } = require('uuid')
 module.exports = (dbModel, sessionDoc, req) =>
   new Promise(async (resolve, reject) => {
 
@@ -27,7 +29,7 @@ module.exports = (dbModel, sessionDoc, req) =>
 
 function getOne(dbModel, sessionDoc, req) {
   return new Promise((resolve, reject) => {
-    dbModel.orders
+    dbModel.invoices
       .findOne({ _id: req.params.param1 })
       .populate([{
         path: 'firm',
@@ -51,15 +53,15 @@ function getList(dbModel, sessionDoc, req) {
       populate: ['firm']
     }
     let filter = {}
-    if (req.query.closed != undefined) {
-      if (req.query.closed.toString() == 'false') filter.closed = false
-      if (req.query.closed.toString() == 'true') filter.closed = true
+    if (req.query.draft != undefined) {
+      if (req.query.draft.toString() == 'false') filter.draft = false
+      if (req.query.draft.toString() == 'true') filter.draft = true
     }
     if (req.query.firm)
       filter.firm = req.query.firm
 
-    if (req.query.type)
-      filter.type = req.query.type
+    if (req.query.ioType)
+      filter.ioType = Number(req.query.ioType)
 
     if (req.query.startDate && req.query.endDate) {
       filter.issueDate = { $gte: req.query.startDate, $lte: req.query.endDate }
@@ -70,20 +72,20 @@ function getList(dbModel, sessionDoc, req) {
     }
 
 
-    if (req.query.search) {
-      filter.$or = [
-        { documentNumber: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-        { 'address.streetName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-        { 'address.buildingName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-        { 'address.citySubdivisionName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-        { 'address.cityName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-        { 'address.region': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-        { 'address.district': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-        { 'address.country.name': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
-      ]
-    }
-
-    dbModel.orders
+    // if (req.query.search) {
+    //   filter.$or = [
+    //     { ID: { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+    //     { 'address.streetName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+    //     { 'address.buildingName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+    //     { 'address.citySubdivisionName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+    //     { 'address.cityName': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+    //     { 'address.region': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+    //     { 'address.district': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+    //     { 'address.country.name': { $regex: `.*${req.query.search}.*`, $options: 'i' } },
+    //   ]
+    // }
+    console.log(`filter:`, filter)
+    dbModel.invoices
       .paginate(filter, options)
       .then(resolve).catch(reject)
   })
@@ -95,29 +97,31 @@ function post(dbModel, sessionDoc, req) {
 
       let data = req.body || {}
       delete data._id
+
+      console.log(`data:`, data)
+      if (!data.firm) return reject('firm required')
+      if (data.ioType == undefined) return reject('ioType required')
+      if (!data.issueDate) return reject('issueDate required')
+      // if (!data.documentNumber) return reject('documentNumber required')
+      let firmDoc = await dbModel.firms.findOne({ _id: data.firm })
+      if (!firmDoc) return reject(`firm not found`)
       if (!data.draft) {
-        if (!data.firm) return reject('firm required')
-        if (!data.type) return reject('ioType required')
-        if (!data.issueDate) return reject('issueDate required')
-        if (!data.documentNumber) return reject('documentNumber required')
-        let firmDoc = await dbModel.firms.findOne({ _id: data.firm })
-        if (!firmDoc) return reject(`firm not found`)
-        if (await dbModel.orders.countDocuments({
-          documentNumber: data.documentNumber
+        if (await dbModel.invoices.countDocuments({
+          ID: data.ID
         }) > 0) return reject(`name already exists`)
       }
+      if (!data.uuid) data.uuid = v4()
 
 
 
-
-      const newDoc = new dbModel.orders(data)
+      const newDoc = new dbModel.invoices(data)
 
       if (!epValidateSync(newDoc, reject)) return
 
       newDoc.save()
         .then(async newDoc => {
           await updateOrder(dbModel, newDoc._id)
-          const doc = await dbModel.orders.findOne({ _id: newDoc._id })
+          const doc = await dbModel.invoices.findOne({ _id: newDoc._id })
           resolve(doc)
         })
         .catch(reject)
@@ -136,26 +140,31 @@ function put(dbModel, sessionDoc, req) {
       let data = req.body || {}
       delete data._id
 
-      let doc = await dbModel.orders.findOne({ _id: req.params.param1 })
+      let doc = await dbModel.invoices.findOne({ _id: req.params.param1 })
       if (!doc) return reject(`record not found`)
 
       doc = Object.assign(doc, data)
+
+      if (!data.firm) return reject('firm required')
+      if (!data.issueDate) return reject('issueDate required')
+      if (data.ioType == undefined) return reject('ioType required')
+
+      // if (!data.documentNumber) return reject('documentNumber required')
+      let firmDoc = await dbModel.firms.findOne({ _id: data.firm })
+      if (!firmDoc) return reject(`firm not found`)
       if (!data.draft) {
-        if (!data.firm) return reject('firm required')
-        if (!data.issueDate) return reject('issueDate required')
-        if (!data.documentNumber) return reject('documentNumber required')
-        let firmDoc = await dbModel.firms.findOne({ _id: data.firm })
-        if (!firmDoc) return reject(`firm not found`)
-        if (await dbModel.orders.countDocuments({
-          documentNumber: data.documentNumber, _id: { $ne: doc._id }
+        if (await dbModel.invoices.countDocuments({
+          ID: data.ID, _id: { $ne: doc._id }
         }) > 0) return reject(`name already exists`)
       }
+      if (!data.uuid) data.uuid = v4()
+
       if (!epValidateSync(doc, reject)) return
 
       doc.save()
         .then(async newDoc => {
           await updateOrder(dbModel, newDoc._id)
-          const doc = await dbModel.orders.findOne({ _id: newDoc._id })
+          const doc = await dbModel.invoices.findOne({ _id: newDoc._id })
           resolve(doc)
         })
         .catch(reject)
@@ -175,7 +184,7 @@ function deleteItem(dbModel, sessionDoc, req) {
         await dbModel.orderLines.removeOne(sessionDoc, { order: req.params.param1 })
       }
 
-      dbModel.orders.removeOne(sessionDoc, { _id: req.params.param1 })
+      dbModel.invoices.removeOne(sessionDoc, { _id: req.params.param1 })
         .then(resolve)
         .catch(reject)
     } catch (err) {
