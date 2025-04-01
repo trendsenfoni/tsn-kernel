@@ -41,3 +41,42 @@ exports.party = () => {
     }
   }
 }
+
+exports.taxTotal = () => {
+  return {
+    taxAmount: { type: Number, default: 0 },
+    taxSubTotal: [{
+      taxableAmount: { type: Number, default: 0 },
+      taxAmount: { type: Number, default: 0 },
+      calculationSequenceNumeric: { type: Number, default: 1 },
+      percent: { type: Number, default: 0 },
+      taxCategory: {
+        taxExemptionReasonCode: { type: String, default: '' },
+        taxExemptionReason: { type: String, default: '' },
+        taxScheme: {
+          name: { type: String, default: '' },
+          taxTypeCode: { type: String, default: '' }
+        }
+      }
+    }]
+  }
+}
+exports.withholdingTaxTotal = () => {
+  return [{
+    taxAmount: { type: Number, default: 0 },
+    taxSubTotal: [{
+      taxableAmount: { type: Number, default: 0 },
+      taxAmount: { type: Number, default: 0 },
+      calculationSequenceNumeric: { type: Number, default: 1 },
+      percent: { type: Number, default: 0 },
+      taxCategory: {
+        taxExemptionReasonCode: { type: String, default: '' },
+        taxExemptionReason: { type: String, default: '' },
+        taxScheme: {
+          name: { type: String, default: '' },
+          taxTypeCode: { type: String, default: '' }
+        }
+      }
+    }]
+  }]
+}

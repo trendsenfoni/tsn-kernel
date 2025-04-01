@@ -1,3 +1,4 @@
+const { taxTotal } = require('./partyHelper')
 const collectionName = path.basename(__filename, '.collection.js')
 module.exports = function (dbModel) {
 	const schema = mongoose.Schema(
@@ -14,14 +15,11 @@ module.exports = function (dbModel) {
 			delivered: { type: Number, default: 0 },
 			remainder: { type: Number, default: 0 },
 			price: { type: Number, default: 0 },
-			total: { type: Number, default: 0 },
+			lineExtensionAmount: { type: Number, default: 0 },
+			unitCode: { type: String, default: '' },
 			currency: { type: String, default: '' },
-			taxRate: { type: Number, default: 0 },
-			withHoldingTaxRate: { type: Number, default: 0 },
-			taxAmount: { type: Number, default: 0 },
-			withHoldingTaxAmount: { type: Number, default: 0 },
-			taxInclusiveTotal: { type: Number, default: 0 },
-			closed: { type: Boolean, default: false, index: true },
+			taxTotal: taxTotal(),
+
 		},
 		{ versionKey: false, timestamps: true }
 	)

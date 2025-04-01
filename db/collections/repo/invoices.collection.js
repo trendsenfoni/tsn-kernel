@@ -1,4 +1,4 @@
-const { party } = require('./partyHelper')
+const { party, taxTotal } = require('./partyHelper')
 const collectionName = path.basename(__filename, '.collection.js')
 const { v4 } = require('uuid')
 module.exports = function (dbModel) {
@@ -28,6 +28,7 @@ module.exports = function (dbModel) {
 				chargeTotalAmount: { type: Number, default: 0 },
 				payableAmount: { type: Number, default: 0 },
 			},
+			taxTotal: taxTotal(),
 			accountingSupplierParty: party(),
 			accountingCustomerParty: party(),
 			note: [{ type: String, default: '' }],

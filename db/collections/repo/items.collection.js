@@ -1,13 +1,21 @@
+
 const collectionName = path.basename(__filename, '.collection.js')
 module.exports = function (dbModel) {
 	const schema = mongoose.Schema(
 		{
 			itemGroup: { type: ObjectId, ref: 'itemGroups', required: true, index: true },
+			category: { type: ObjectId, ref: 'categories', index: true },
 			name: { type: String, unique: true },
-			description: { type: String, default: '' },
-			vatRate: { type: Number, default: 0 },
-			withHoldingTaxRate: { type: Number, default: 0 },
-			unit: { type: String, default: '' },
+			description: { type: String, default: '', index: true },
+			keyword: { type: String, default: '', index: true },
+			brand: { type: ObjectId, ref: 'brands', default: null, index: true },
+			model: { type: ObjectId, ref: 'models', default: null, index: true },
+			taxType: { type: ObjectId, ref: 'taxTypes', default: null, index: true },
+			unitCode: { type: String, default: '' },
+			buyersItemIdentification: { type: String, default: '', index: true },
+			sellersItemIdentification: { type: String, default: '', index: true },
+			manufacturersItemIdentification: { type: String, default: '', index: true },
+			additionalItemIdentification: [{}],
 			passive: { type: Boolean, default: false, index: true }
 		},
 		{ versionKey: false, timestamps: true }
