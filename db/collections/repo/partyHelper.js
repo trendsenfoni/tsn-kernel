@@ -45,7 +45,7 @@ exports.party = () => {
 exports.taxTotal = () => {
   return {
     taxAmount: { type: Number, default: 0 },
-    taxSubTotal: [{
+    taxSubtotal: [{
       taxableAmount: { type: Number, default: 0 },
       taxAmount: { type: Number, default: 0 },
       calculationSequenceNumeric: { type: Number, default: 1 },
