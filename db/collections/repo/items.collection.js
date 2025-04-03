@@ -11,6 +11,7 @@ module.exports = function (dbModel) {
 			brand: { type: ObjectId, ref: 'brands', default: null, index: true },
 			model: { type: ObjectId, ref: 'models', default: null, index: true },
 			taxType: { type: ObjectId, ref: 'taxTypes', default: null, index: true },
+			exportTaxType: { type: ObjectId, ref: 'taxTypes', default: null, index: true },
 			unitCode: { type: String, default: '' },
 			buyersItemIdentification: { type: String, default: '', index: true },
 			sellersItemIdentification: { type: String, default: '', index: true },

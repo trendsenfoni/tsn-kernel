@@ -91,9 +91,15 @@ function put(dbModel, sessionDoc, req) {
       let doc = await dbModel.taxTypes.findOne({ _id: req.params.param1 })
       if (!doc) return reject(`record not found`)
       doc = Object.assign(doc, data)
-      doc.taxTotal = data.taxTotal
-      doc.withholdingTaxTotal = data.withholdingTaxTotal
-      console.log(`data.taxTotal:`, data.taxTotal)
+      // doc.taxTotal = data.taxTotal
+      // doc.withholdingTaxTotal = []
+      // if (Array.isArray(data.withholdingTaxTotal)) {
+      //   doc.withholdingTaxTotal = data.withholdingTaxTotal.map(e => e)
+      // }
+      // doc.withholdingTaxTotal = data.withholdingTaxTotal
+      console.log(`data:`, data)
+      console.log(`doc:`, doc)
+
       if (!epValidateSync(doc, reject)) return
       if (await dbModel.taxTypes.countDocuments({ name: doc.name, _id: { $ne: doc._id } }) > 0)
         return reject(`name already exists`)

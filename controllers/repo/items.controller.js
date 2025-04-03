@@ -29,12 +29,17 @@ function getOne(dbModel, sessionDoc, req) {
   return new Promise((resolve, reject) => {
     dbModel.items
       .findOne({ _id: req.params.param1 })
-      .populate([{
-        path: 'itemGroup',
-        populate: [{
-          path: 'itemMainGroup'
-        }]
-      }])
+      .populate([
+        {
+          path: 'itemGroup',
+          populate: [{ path: 'itemMainGroup' }]
+        },
+        { path: 'category' },
+        { path: 'brand' },
+        { path: 'model' },
+        { path: 'taxType' },
+        { path: 'exportTaxType' }
+      ])
       .then(resolve)
       .catch(reject)
   })
@@ -46,10 +51,17 @@ function getList(dbModel, sessionDoc, req) {
       let options = {
         page: req.query.page || 1,
         limit: req.query.pageSize || 10,
-        populate: [{
-          path: 'itemGroup',
-          populate: [{ path: 'itemMainGroup' }]
-        }]
+        populate: [
+          {
+            path: 'itemGroup',
+            populate: [{ path: 'itemMainGroup' }]
+          },
+          { path: 'category' },
+          { path: 'brand' },
+          { path: 'model' },
+          { path: 'taxType' },
+          { path: 'exportTaxType' },
+        ]
       }
       let filter = {}
       if (req.query.passive != undefined) {
@@ -60,8 +72,20 @@ function getList(dbModel, sessionDoc, req) {
         filter.itemGroup = req.query.itemGroup
       } else if (req.query.itemMainGroup) {
         const groupList = (await dbModel.itemGroups.find({ itemMainGroup: req.query.itemMainGroup })).map(e => e._id)
-        console.log(`groupList:`, groupList)
         filter.itemGroup = { $in: groupList }
+      }
+
+      if (req.query.category && req.query.category != '*') {
+        filter.category = req.query.category
+      }
+      if (req.query.brand && req.query.brand != '*') {
+        filter.brand = req.query.brand
+      }
+      if (req.query.model && req.query.model != '*') {
+        filter.model = req.query.model
+      }
+      if (req.query.taxType && req.query.taxType != '*') {
+        filter.taxType = req.query.taxType
       }
       if (req.query.search) {
         filter.$or = [
