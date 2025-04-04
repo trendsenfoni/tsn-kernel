@@ -16,7 +16,11 @@ exports.party = () => {
       schemeID: { type: String, default: '', index: true },
       ID: { type: String, default: '', index: true }
     }],
-    partyTaxScheme: { type: String, default: '', index: true },
+    partyTaxScheme: {
+      taxScheme: {
+        name: { type: String, default: '', index: true }
+      }
+    },
     postalAddress: {
       room: { type: String, default: '' },
       streetName: { type: String, default: '', index: true },

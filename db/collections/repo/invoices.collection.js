@@ -1,4 +1,4 @@
-const { party, taxTotal } = require('./partyHelper')
+const { party, taxTotal, withholdingTaxTotal } = require('./partyHelper')
 const collectionName = path.basename(__filename, '.collection.js')
 const { v4 } = require('uuid')
 module.exports = function (dbModel) {
@@ -20,6 +20,15 @@ module.exports = function (dbModel) {
 			issueTime: { type: String, index: true, min: 8, max: 22, default: new Date().toISOString().substring(11).replace('Z', '+00:00') },
 			lineCountNumeric: { type: Number, default: 0 },
 			currency: { type: String, enum: ['USD', 'EUR', 'TRY', 'GBP', 'RUB', 'AZN', 'AED'], default: 'USD' },
+
+			exchangeRate: {
+				sourceCurrencyCode: { type: String, default: 'TRY', index: true },
+				targetCurrencyCode: { type: String, default: 'TRY', index: true },
+				calculationRate: { type: Number, default: 1 },
+				date: { type: String, default: '' },
+			},
+			taxTotal: taxTotal(),
+			withholdingTaxTotal: withholdingTaxTotal(),
 			legalMonetaryTotal: {
 				lineExtensionAmount: { type: Number, default: 0 },
 				taxExclusiveAmount: { type: Number, default: 0 },
@@ -28,11 +37,9 @@ module.exports = function (dbModel) {
 				chargeTotalAmount: { type: Number, default: 0 },
 				payableAmount: { type: Number, default: 0 },
 			},
-			taxTotal: taxTotal(),
 			accountingSupplierParty: party(),
 			accountingCustomerParty: party(),
 			note: [{ type: String, default: '' }],
-			quantity: { type: Number, default: 0 },
 			draft: { type: Boolean, default: false, index: true },
 		},
 		{ versionKey: false, timestamps: true }

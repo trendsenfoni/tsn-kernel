@@ -105,7 +105,7 @@ function post(dbModel, sessionDoc, req) {
 
       doc.save()
         .then(async newDoc => {
-          await updateOrder(dbModel, newDoc.order._id)
+          await updateOrder(dbModel, newDoc.order)
           newDoc = newDoc.populate(['item'])
           resolve(newDoc)
         })
@@ -162,7 +162,7 @@ function put(dbModel, sessionDoc, req) {
 
       doc.save()
         .then(async newDoc => {
-          await updateOrder(dbModel, newDoc.order._id)
+          await updateOrder(dbModel, newDoc.order)
           newDoc = newDoc.populate(['item'])
           resolve(newDoc)
         })

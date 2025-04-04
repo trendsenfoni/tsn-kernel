@@ -1,5 +1,5 @@
 const { couldStartTrivia } = require('typescript')
-const { updateOrder } = require('./bizdoc-helper')
+const { updateInvoice } = require('./bizdoc-helper')
 const { v4 } = require('uuid')
 module.exports = (dbModel, sessionDoc, req) =>
   new Promise(async (resolve, reject) => {
@@ -7,7 +7,12 @@ module.exports = (dbModel, sessionDoc, req) =>
     switch (req.method.toUpperCase()) {
       case 'GET':
         if (req.params.param1 != undefined) {
-          getOne(dbModel, sessionDoc, req).then(resolve).catch(reject)
+          if (req.params.param1 == 'getHeader' && req.params.param2 != undefined) {
+            getHeader(dbModel, sessionDoc, req).then(resolve).catch(reject)
+          } else {
+            getOne(dbModel, sessionDoc, req).then(resolve).catch(reject)
+          }
+
         } else {
           getList(dbModel, sessionDoc, req).then(resolve).catch(reject)
         }
@@ -27,6 +32,16 @@ module.exports = (dbModel, sessionDoc, req) =>
     }
   })
 
+function getHeader(dbModel, sessionDoc, req) {
+  return new Promise((resolve, reject) => {
+    dbModel.invoices
+      .findOne({ _id: req.params.param2 })
+      .populate([{ path: 'firm' }])
+      .then(resolve)
+      .catch(reject)
+  })
+}
+
 function getOne(dbModel, sessionDoc, req) {
   return new Promise((resolve, reject) => {
     dbModel.invoices
@@ -36,9 +51,9 @@ function getOne(dbModel, sessionDoc, req) {
 
       }])
       .then(async doc => {
-        if (!doc) return reject('order document not found')
+        if (!doc) return reject('invoice document not found')
         let obj = doc.toJSON()
-        obj.lines = await dbModel.orderLines.find({ order: doc._id })
+        obj.lines = await dbModel.invoiceLines.find({ order: doc._id })
         resolve(obj)
       })
       .catch(reject)
@@ -120,7 +135,7 @@ function post(dbModel, sessionDoc, req) {
 
       newDoc.save()
         .then(async newDoc => {
-          await updateOrder(dbModel, newDoc._id)
+          await updateInvoice(dbModel, newDoc._id)
           const doc = await dbModel.invoices.findOne({ _id: newDoc._id })
           resolve(doc)
         })
@@ -163,7 +178,7 @@ function put(dbModel, sessionDoc, req) {
 
       doc.save()
         .then(async newDoc => {
-          await updateOrder(dbModel, newDoc._id)
+          await updateInvoice(dbModel, newDoc._id)
           const doc = await dbModel.invoices.findOne({ _id: newDoc._id })
           resolve(doc)
         })
@@ -180,8 +195,8 @@ function deleteItem(dbModel, sessionDoc, req) {
     try {
       if (req.params.param1 == undefined) return restError.param1(req, reject)
 
-      if (await dbModel.orderLines.countDocuments({ order: req.params.param1 }) > 0) {
-        await dbModel.orderLines.removeOne(sessionDoc, { order: req.params.param1 })
+      if (await dbModel.invoiceLines.countDocuments({ order: req.params.param1 }) > 0) {
+        await dbModel.invoiceLines.removeOne(sessionDoc, { order: req.params.param1 })
       }
 
       dbModel.invoices.removeOne(sessionDoc, { _id: req.params.param1 })

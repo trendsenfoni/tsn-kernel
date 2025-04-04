@@ -1,4 +1,4 @@
-const { updateOrder } = require('./bizdoc-helper')
+const { updateInvoice } = require('./bizdoc-helper')
 module.exports = (dbModel, sessionDoc, req) =>
   new Promise(async (resolve, reject) => {
 
@@ -105,7 +105,7 @@ function post(dbModel, sessionDoc, req) {
 
       doc.save()
         .then(async newDoc => {
-          await updateOrder(dbModel, newDoc.invoice._id)
+          await updateInvoice(dbModel, newDoc.invoice._id)
           newDoc = newDoc.populate(['item'])
           resolve(newDoc)
         })
@@ -162,7 +162,7 @@ function put(dbModel, sessionDoc, req) {
 
       doc.save()
         .then(async newDoc => {
-          await updateOrder(dbModel, newDoc.invoice._id)
+          await updateInvoice(dbModel, newDoc.invoice)
           newDoc = newDoc.populate(['item'])
           resolve(newDoc)
         })
