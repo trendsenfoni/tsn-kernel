@@ -160,7 +160,7 @@ function repoControllers(app, route) {
             _id: sessionDoc.db
           })
           if (!dbDoc) return reject(`Database not found`)
-          getRepoDbModel(sessionDoc.member, dbDoc.dbName, 'server1')
+          getRepoDbModel(sessionDoc.member, dbDoc._id, dbDoc.dbName, 'server1')
             .then(dbModel => {
               ctl(dbModel, sessionDoc, req)
                 .then((data) => {

@@ -19,53 +19,52 @@ exports.sendToTrash = (dbModel, collectionName, session, filter) =>
             let index = 0
             let errorList = []
 
-            let kontrolEt = () =>
-              new Promise((resolve, reject) => {
-                if (index >= keys.length) return resolve()
-                getRepoDbModel(dbModel._id)
-                  .then((mdl) => {
-                    let k = keys[index]
-                    let relationFilter
-                    let errMessage = `Bu kayit <b>${k}</b> tablosuna baglidir.`
-                    if (Array.isArray(relations[k])) {
-                      if (relations[k].length > 0)
-                        if (typeof relations[k][0] == 'string') {
-                          relationFilter = {}
-                          relationFilter[relations[k][0]] = doc._id
-                          if (relations[k].length > 1)
-                            if (typeof relations[k][1] == 'string')
-                              errMessage = relations[k][1]
-                        }
-                    } else if (typeof relations[k] == 'object') {
-                      if (relations[k].field) {
+            let kontrolEt = () => new Promise((resolve, reject) => {
+              if (index >= keys.length) return resolve()
+              getRepoDbModel(session.member, dbModel._id, dbModel.dbName)
+                .then((mdl) => {
+                  let k = keys[index]
+                  let relationFilter
+                  let errMessage = `Bu kayit <b>${k}</b> tablosuna baglidir.`
+                  if (Array.isArray(relations[k])) {
+                    if (relations[k].length > 0)
+                      if (typeof relations[k][0] == 'string') {
                         relationFilter = {}
-                        relationFilter[relations[k].field] = doc._id
-                        if (relations[k].filter)
-                          Object.assign(relationFilter, relations[k].filter)
-                        if (relations[k].message)
-                          errMessage = relations[k].message
+                        relationFilter[relations[k][0]] = doc._id
+                        if (relations[k].length > 1)
+                          if (typeof relations[k][1] == 'string')
+                            errMessage = relations[k][1]
                       }
-                    }
-
-                    if (!relationFilter) {
+                  } else if (typeof relations[k] == 'object') {
+                    if (relations[k].field) {
                       relationFilter = {}
-                      relationFilter[relations[k]] = doc._id
+                      relationFilter[relations[k].field] = doc._id
+                      if (relations[k].filter)
+                        Object.assign(relationFilter, relations[k].filter)
+                      if (relations[k].message)
+                        errMessage = relations[k].message
                     }
+                  }
 
-                    mdl[k]
-                      .countDocuments(relationFilter)
-                      .then((c) => {
-                        if (c > 0) errorList.push(`${errMessage} ${c} Kayıt`)
-                        index++
-                        setTimeout(
-                          () => kontrolEt().then(resolve).catch(reject),
-                          0
-                        )
-                      })
-                      .catch(reject)
-                  })
-                  .catch(reject)
-              })
+                  if (!relationFilter) {
+                    relationFilter = {}
+                    relationFilter[relations[k]] = doc._id
+                  }
+
+                  mdl[k]
+                    .countDocuments(relationFilter)
+                    .then((c) => {
+                      if (c > 0) errorList.push(`${errMessage} ${c} Kayıt`)
+                      index++
+                      setTimeout(
+                        () => kontrolEt().then(resolve).catch(reject),
+                        0
+                      )
+                    })
+                    .catch(reject)
+                })
+                .catch(reject)
+            })
 
             kontrolEt()
               .then(() => {

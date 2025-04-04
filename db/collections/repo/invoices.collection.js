@@ -19,7 +19,7 @@ module.exports = function (dbModel) {
 			issueDate: { type: String, index: true, min: 10, max: 10, default: new Date().toISOString().substring(0, 10) },
 			issueTime: { type: String, index: true, min: 8, max: 22, default: new Date().toISOString().substring(11).replace('Z', '+00:00') },
 			lineCountNumeric: { type: Number, default: 0 },
-			currency: { type: String, enum: ['USD', 'TRY', 'EUR', 'RUB', 'GBP'], default: 'USD' },
+			currency: { type: String, enum: ['USD', 'EUR', 'TRY', 'GBP', 'RUB', 'AZN', 'AED'], default: 'USD' },
 			legalMonetaryTotal: {
 				lineExtensionAmount: { type: Number, default: 0 },
 				taxExclusiveAmount: { type: Number, default: 0 },

@@ -94,7 +94,7 @@ function initRepoDb() {
     })
 }
 
-global.getRepoDbModel = (memberId, dbName, dbServer) =>
+global.getRepoDbModel = (memberId, dbId, dbName, dbServer) =>
   new Promise((resolve, reject) => {
     let dbModel = {
       get nameLog() {
@@ -103,7 +103,7 @@ global.getRepoDbModel = (memberId, dbName, dbServer) =>
     }
     dbModel.memberId = memberId
     dbModel.dbName = dbName
-
+    dbModel._id = dbId
     // if (serverList[dbServer]) {
     // dbModel.conn = serverList[dbServer].useDb(dbName)
     const mongoAddress = `${process.env.MONGODB_SERVER1_URI}${dbName}`

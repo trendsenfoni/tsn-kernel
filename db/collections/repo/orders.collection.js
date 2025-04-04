@@ -16,7 +16,7 @@ module.exports = function (dbModel) {
 			lineCount: { type: Number, default: 0 },
 			quantity: { type: Number, default: 0 },
 			total: { type: Number, default: 0 },
-			currency: { type: String, enum: ['USD', 'TRY', 'EUR', 'RUB', 'GBP'], default: 'USD' },
+			currency: { type: String, enum: ['USD', 'EUR', 'TRY', 'GBP', 'RUB', 'AZN', 'AED'], default: 'USD' },
 			taxAmount: { type: Number, default: 0 },
 			withHoldingTaxAmount: { type: Number, default: 0 },
 			taxInclusiveTotal: { type: Number, default: 0 },
