@@ -48,31 +48,39 @@ exports.updateInvoice = function (dbModel, invoiceId) {
       let allowanceTotalAmount = 0
       let chargeTotalAmount = 0
       let payableAmount = 0
-      // let taxTotal = taxTotal()
-      // let withholdingTaxTotal = withholdingTaxTotal()
+      let taxTotal = { taxAmount: 0, taxSubtotal: [] }
+      let withholdingTaxTotal = []
+      let satirTaxTotal = false
       let invoiceDoc = await dbModel.invoices.findOne({ _id: invoiceId })
       if (!invoiceDoc) return reject('invoice not found (update invoice)')
 
       lines.forEach(line => {
         lineExtensionAmount += line.lineExtensionAmount
         taxExclusiveAmount += line.lineExtensionAmount
-        // if (line.taxTotal && (line.taxAmount || 0) > 0) {
-        //   line.taxTotal.taxSubTotal.forEach(e => {
-        //     taxTotal.taxAmount += e.taxAmount
-        //     const fIndex = taxTotal.taxSubTotal.findIndex(k => k.percent == e.percent && k.taxCategory?.taxScheme?.taxTypeCode == e.taxCategory?.taxScheme?.taxTypeCode)  
-        //     if (fIndex > -1) {
+        if (line.taxTotal && line.taxTotal.taxAmount > 0 && line.taxTotal.taxSubtotal.length > 0) {
+          console.log(`buraya geldi:`,)
+          satirTaxTotal = true
+          taxTotal.taxAmount += line.taxTotal.taxAmount
+          const findex = (taxTotal.taxSubtotal || []).findex(e => e.taxCategory.taxScheme.taxTypeCode == line.taxTotal.taxSubtotal[0].taxCategory.taxScheme.taxTypeCode && e.percent == line.taxTotal.taxSubtotal[0].percent)
+          if (findex > -1) {
+            taxTotal.taxSubtotal[findex].taxAmount += line.taxTotal.taxSubtotal[0].taxAmount
+          } else {
+            line.taxTotal.taxSubtotal.forEach(e => {
+              taxTotal.taxSubtotal.push(e)
+            })
 
-        //     } else {
-
-        //       taxTotal.taxSubTotal.push(e)
-        //     }
-        //   })
-
-        // }
+          }
+        }
       })
+
       invoiceDoc.legalMonetaryTotal.lineExtensionAmount = lineExtensionAmount
       invoiceDoc.legalMonetaryTotal.taxExclusiveAmount = taxExclusiveAmount
-      invoiceDoc.legalMonetaryTotal.taxInclusiveAmount = taxExclusiveAmount
+      if (satirTaxTotal) {
+        invoiceDoc.taxTotal = taxTotal
+        console.log(`invoiceDoc.taxTotal:`, invoiceDoc.taxTotal)
+      }
+
+      invoiceDoc.legalMonetaryTotal.taxInclusiveAmount = taxExclusiveAmount + ((invoiceDoc.taxTotal || {}).taxAmount || 0)
       invoiceDoc.save()
         .then(resolve)
         .catch(reject)

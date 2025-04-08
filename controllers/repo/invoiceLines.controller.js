@@ -189,7 +189,7 @@ function deleteItem(dbModel, sessionDoc, req) {
       dbModel.invoiceLines.removeOne(sessionDoc, { _id: req.params.param1 })
         .then(async result => {
           if (invoiceLinesDoc.invoice) {
-            await updateOrder(dbModel, invoiceLinesDoc.invoice)
+            await updateInvoice(dbModel, invoiceLinesDoc.invoice)
           }
 
           resolve(result)
