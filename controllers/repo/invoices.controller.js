@@ -121,9 +121,10 @@ function post(dbModel, sessionDoc, req) {
       let firmDoc = await dbModel.firms.findOne({ _id: data.firm })
       if (!firmDoc) return reject(`firm not found`)
       if (!data.draft) {
+        if (!data.ID) return reject(`invoice number required`)
         if (await dbModel.invoices.countDocuments({
           ID: data.ID
-        }) > 0) return reject(`name already exists`)
+        }) > 0) return reject(`invoice number already exists`)
       }
       if (!data.uuid) data.uuid = v4()
 
@@ -168,9 +169,11 @@ function put(dbModel, sessionDoc, req) {
       let firmDoc = await dbModel.firms.findOne({ _id: data.firm })
       if (!firmDoc) return reject(`firm not found`)
       if (!data.draft) {
+        if (!data.ID) return reject(`invoice number required`)
+
         if (await dbModel.invoices.countDocuments({
           ID: data.ID, _id: { $ne: doc._id }
-        }) > 0) return reject(`name already exists`)
+        }) > 0) return reject(`invoice number already exists`)
       }
       if (!data.uuid) data.uuid = v4()
 

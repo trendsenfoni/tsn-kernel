@@ -105,7 +105,7 @@ function post(dbModel, sessionDoc, req) {
 
       doc.save()
         .then(async newDoc => {
-          await updateInvoice(dbModel, newDoc.invoice._id)
+          await updateInvoice(dbModel, newDoc.invoice)
           newDoc = newDoc.populate(['item'])
           resolve(newDoc)
         })
@@ -165,6 +165,7 @@ function put(dbModel, sessionDoc, req) {
           await updateInvoice(dbModel, newDoc.invoice)
           newDoc = newDoc.populate(['item'])
           resolve(newDoc)
+
         })
         .catch(reject)
     } catch (err) {
@@ -191,8 +192,10 @@ function deleteItem(dbModel, sessionDoc, req) {
           if (invoiceLinesDoc.invoice) {
             await updateInvoice(dbModel, invoiceLinesDoc.invoice)
           }
-
           resolve(result)
+
+
+
         })
         .catch(reject)
     } catch (err) {

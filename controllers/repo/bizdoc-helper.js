@@ -54,36 +54,51 @@ exports.updateInvoice = function (dbModel, invoiceId) {
       let invoiceDoc = await dbModel.invoices.findOne({ _id: invoiceId })
       if (!invoiceDoc) return reject('invoice not found (update invoice)')
 
-      lines.forEach(line => {
+      let lineIndex = 0
+      while (lineIndex < lines.length) {
+        const line = lines[lineIndex]
         lineExtensionAmount += line.lineExtensionAmount
         taxExclusiveAmount += line.lineExtensionAmount
         if (line.taxTotal && line.taxTotal.taxAmount > 0 && line.taxTotal.taxSubtotal.length > 0) {
-          console.log(`buraya geldi:`,)
           satirTaxTotal = true
           taxTotal.taxAmount += line.taxTotal.taxAmount
-          const findex = (taxTotal.taxSubtotal || []).findex(e => e.taxCategory.taxScheme.taxTypeCode == line.taxTotal.taxSubtotal[0].taxCategory.taxScheme.taxTypeCode && e.percent == line.taxTotal.taxSubtotal[0].percent)
-          if (findex > -1) {
-            taxTotal.taxSubtotal[findex].taxAmount += line.taxTotal.taxSubtotal[0].taxAmount
-          } else {
-            line.taxTotal.taxSubtotal.forEach(e => {
-              taxTotal.taxSubtotal.push(e)
-            })
-
+          let stIndex = 0
+          while (stIndex < line.taxTotal.taxSubtotal.length) {
+            const k = line.taxTotal.taxSubtotal[stIndex]
+            if (k.taxCategory && k.taxCategory.taxScheme && k.taxCategory.taxScheme.taxTypeCode) {
+              let bulundu = false
+              taxTotal.taxSubtotal.forEach(l => {
+                if (l.taxCategory && l.taxCategory.taxScheme && l.taxCategory.taxScheme.taxTypeCode == k.taxCategory.taxScheme.taxTypeCode && l.percent == k.percent) {
+                  bulundu = true
+                  l.taxAmount += k.taxAmount
+                }
+              })
+              if (!bulundu) {
+                taxTotal.taxSubtotal.push(k)
+              }
+            }
+            stIndex++
           }
-        }
-      })
 
+        }
+        lineIndex++
+      }
+      taxTotal.taxAmount = Math.round(100 * taxTotal.taxAmount) / 100
+      lineExtensionAmount = Math.round(100 * lineExtensionAmount) / 100
+      taxExclusiveAmount = Math.round(100 * taxExclusiveAmount) / 100
       invoiceDoc.legalMonetaryTotal.lineExtensionAmount = lineExtensionAmount
       invoiceDoc.legalMonetaryTotal.taxExclusiveAmount = taxExclusiveAmount
       if (satirTaxTotal) {
         invoiceDoc.taxTotal = taxTotal
-        console.log(`invoiceDoc.taxTotal:`, invoiceDoc.taxTotal)
       }
 
-      invoiceDoc.legalMonetaryTotal.taxInclusiveAmount = taxExclusiveAmount + ((invoiceDoc.taxTotal || {}).taxAmount || 0)
+      invoiceDoc.legalMonetaryTotal.taxInclusiveAmount = taxExclusiveAmount + taxTotal.taxAmount
+
       invoiceDoc.save()
         .then(resolve)
         .catch(reject)
+
+
     } catch (err) {
       reject(err)
     }
