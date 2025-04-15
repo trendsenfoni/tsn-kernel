@@ -92,15 +92,8 @@ function post(dbModel, sessionDoc, req) {
       data.issueTime = invoiceDoc.issueTime
       data.currency = invoiceDoc.currency
 
-      const doc = new dbModel.invoiceLines(data)
-      if ((doc.total || 0) <= 0) {
-        doc.total = Math.round(100 * (doc.price || 0) * doc.quantity) / 100
-      }
-
-      doc.taxAmount = Math.round(100 * doc.total * (doc.taxRate || 0) / 100) / 100
-      doc.withHoldingTaxAmount = Math.round(100 * doc.taxAmount * (doc.withHoldingTaxRate || 0)) / 100
-      doc.taxInclusiveTotal = Math.round(100 * (doc.total + doc.taxAmount - doc.withHoldingTaxAmount)) / 100
-
+      let doc = new dbModel.invoiceLines(data)
+      doc = calcLine(doc)
       if (!epValidateSync(doc, reject)) return
 
       doc.save()
@@ -148,14 +141,7 @@ function put(dbModel, sessionDoc, req) {
       doc.issueDate = invoiceDoc.issueDate
       doc.issueTime = invoiceDoc.issueTime
       doc.currency = invoiceDoc.currency
-      if ((doc.lineExtensionAmount || 0) <= 0) {
-        doc.lineExtensionAmount = Math.round(100 * (doc.price || 0) * doc.invoicedQuantity) / 100
-      }
-
-      // doc.taxAmount = Math.round(100 * doc.total * (doc.taxRate || 0) / 100) / 100
-      // doc.withHoldingTaxAmount = Math.round(100 * doc.taxAmount * (doc.withHoldingTaxRate || 0)) / 100
-      // doc.taxInclusiveTotal = Math.round(100 * (doc.total + doc.taxAmount - doc.withHoldingTaxAmount)) / 100
-
+      doc = calcLine(doc)
       if (!epValidateSync(doc, reject)) return
       // if (await dbModel.invoiceLines.countDocuments({ name: doc.name, _id: { $ne: doc._id } }) > 0)
       //   return reject(`name already exists`)
@@ -175,6 +161,47 @@ function put(dbModel, sessionDoc, req) {
   })
 }
 
+function calcLine(doc) {
+  if ((doc.lineExtensionAmount || 0) <= 0) {
+    doc.lineExtensionAmount = Math.round(100 * (doc.price || 0) * doc.invoicedQuantity) / 100
+  }
+  let tevkifatVar = false
+  if (doc.taxTotal && doc.taxTotal.taxSubtotal && doc.taxTotal.taxSubtotal.length > 0) {
+    doc.taxTotal.taxAmount = 0
+    let kdvOran = 0
+    let kdvTutar = 0
+
+    doc.taxTotal.taxSubtotal.forEach(e => {
+      e.taxableAmount = doc.lineExtensionAmount
+      e.taxAmount = Math.round(100 * e.taxableAmount * e.percent / 100) / 100
+      doc.taxTotal.taxAmount += e.taxAmount
+      if (e.taxCategory && e.taxCategory.taxScheme && e.taxCategory.taxScheme.taxTypeCode == '0015' && kdvTutar == 0) {
+        kdvTutar = e.taxAmount
+        kdvOran = e.percent
+      }
+    })
+
+    if (kdvOran > 0 && kdvTutar > 0) {
+      if ((doc.withholdingTaxTotal || []).length > 0) {
+        doc.withholdingTaxTotal[0].taxAmount = 0
+        if ((doc.withholdingTaxTotal[0].taxSubtotal || []).length > 0) {
+          doc.withholdingTaxTotal[0].taxSubtotal[0].taxableAmount = doc.lineExtensionAmount
+          doc.withholdingTaxTotal[0].taxSubtotal[0].taxAmount = Math.round(100 * doc.withholdingTaxTotal[0].taxSubtotal[0].percent * kdvTutar / 100) / 100
+          doc.withholdingTaxTotal[0].taxAmount = doc.withholdingTaxTotal[0].taxSubtotal[0].taxAmount
+          tevkifatVar = true
+        }
+      }
+    } else {
+      doc.taxTotal = undefined
+    }
+  } else {
+    doc.taxTotal = undefined
+  }
+  if (!tevkifatVar) {
+    doc.withholdingTaxTotal = undefined
+  }
+  return doc
+}
 function deleteItem(dbModel, sessionDoc, req) {
   return new Promise(async (resolve, reject) => {
     try {

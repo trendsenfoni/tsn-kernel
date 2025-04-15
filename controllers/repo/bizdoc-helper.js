@@ -51,6 +51,7 @@ exports.updateInvoice = function (dbModel, invoiceId) {
       let taxTotal = { taxAmount: 0, taxSubtotal: [] }
       let withholdingTaxTotal = []
       let satirTaxTotal = false
+      let satirTevkifat = false
       let invoiceDoc = await dbModel.invoices.findOne({ _id: invoiceId })
       if (!invoiceDoc) return reject('invoice not found (update invoice)')
 
@@ -81,6 +82,31 @@ exports.updateInvoice = function (dbModel, invoiceId) {
           }
 
         }
+        if ((line.withholdingTaxTotal || []).length > 0) {
+          if ((line.withholdingTaxTotal[0].taxSubtotal || []).length > 0) {
+            if (line.withholdingTaxTotal[0].taxSubtotal[0].taxAmount > 0) {
+              let bulunduIndex = withholdingTaxTotal.findIndex(e => {
+                if ((e.taxSubtotal || []).length > 0) {
+                  if (e.taxSubtotal[0].percent == line.withholdingTaxTotal[0].taxSubtotal[0].percent && e.taxSubtotal[0].taxCategory.taxScheme.taxTypeCode == line.withholdingTaxTotal[0].taxSubtotal[0].taxCategory.taxScheme.taxTypeCode) {
+                    return true
+                  }
+                } else {
+                  return false
+                }
+              })
+              satirTevkifat = true
+              if (bulunduIndex > -1) {
+                withholdingTaxTotal[bulunduIndex].taxAmount += line.withholdingTaxTotal[0].taxAmount
+                withholdingTaxTotal[bulunduIndex].taxSubtotal[0].taxAmount += line.withholdingTaxTotal[0].taxSubtotal[0].taxAmount
+              } else {
+                withholdingTaxTotal.push({
+                  taxAmount: line.withholdingTaxTotal[0].taxAmount,
+                  taxSubtotal: [line.withholdingTaxTotal[0].taxSubtotal]
+                })
+              }
+            }
+          }
+        }
         lineIndex++
       }
       taxTotal.taxAmount = Math.round(100 * taxTotal.taxAmount) / 100
@@ -90,6 +116,13 @@ exports.updateInvoice = function (dbModel, invoiceId) {
       invoiceDoc.legalMonetaryTotal.taxExclusiveAmount = taxExclusiveAmount
       if (satirTaxTotal) {
         invoiceDoc.taxTotal = taxTotal
+      }
+      if (satirTevkifat) {
+        invoiceDoc.withholdingTaxTotal = withholdingTaxTotal
+      }
+      if (lines.length == 0) {
+        invoiceDoc.taxTotal = undefined
+        invoiceDoc.withholdingTaxTotal = undefined
       }
 
       invoiceDoc.legalMonetaryTotal.taxInclusiveAmount = taxExclusiveAmount + taxTotal.taxAmount
