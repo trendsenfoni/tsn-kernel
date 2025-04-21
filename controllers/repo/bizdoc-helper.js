@@ -87,8 +87,12 @@ exports.updateInvoice = function (dbModel, invoiceId) {
             if (line.withholdingTaxTotal[0].taxSubtotal[0].taxAmount > 0) {
               let bulunduIndex = withholdingTaxTotal.findIndex(e => {
                 if ((e.taxSubtotal || []).length > 0) {
-                  if (e.taxSubtotal[0].percent == line.withholdingTaxTotal[0].taxSubtotal[0].percent && e.taxSubtotal[0].taxCategory.taxScheme.taxTypeCode == line.withholdingTaxTotal[0].taxSubtotal[0].taxCategory.taxScheme.taxTypeCode) {
-                    return true
+                  try {
+                    if (e.taxSubtotal[0].percent == line.withholdingTaxTotal[0].taxSubtotal[0].percent && e.taxSubtotal[0].taxCategory.taxScheme.taxTypeCode == line.withholdingTaxTotal[0].taxSubtotal[0].taxCategory.taxScheme.taxTypeCode) {
+                      return true
+                    }
+                  } catch {
+                    return false
                   }
                 } else {
                   return false
@@ -101,7 +105,7 @@ exports.updateInvoice = function (dbModel, invoiceId) {
               } else {
                 withholdingTaxTotal.push({
                   taxAmount: line.withholdingTaxTotal[0].taxAmount,
-                  taxSubtotal: [line.withholdingTaxTotal[0].taxSubtotal]
+                  taxSubtotal: line.withholdingTaxTotal[0].taxSubtotal
                 })
               }
             }
@@ -109,6 +113,7 @@ exports.updateInvoice = function (dbModel, invoiceId) {
         }
         lineIndex++
       }
+
       taxTotal.taxAmount = Math.round(100 * taxTotal.taxAmount) / 100
       lineExtensionAmount = Math.round(100 * lineExtensionAmount) / 100
       taxExclusiveAmount = Math.round(100 * taxExclusiveAmount) / 100
@@ -116,16 +121,30 @@ exports.updateInvoice = function (dbModel, invoiceId) {
       invoiceDoc.legalMonetaryTotal.taxExclusiveAmount = taxExclusiveAmount
       if (satirTaxTotal) {
         invoiceDoc.taxTotal = taxTotal
-      }
-      if (satirTevkifat) {
-        invoiceDoc.withholdingTaxTotal = withholdingTaxTotal
-      }
-      if (lines.length == 0) {
+
+        if (satirTevkifat) {
+          invoiceDoc.withholdingTaxTotal = withholdingTaxTotal
+          // withholdingTaxTotal.forEach(e => invoiceDoc.withholdingTaxTotal.push(e))
+        } else {
+          invoiceDoc.withholdingTaxTotal = undefined
+        }
+      } else {
         invoiceDoc.taxTotal = undefined
         invoiceDoc.withholdingTaxTotal = undefined
       }
 
       invoiceDoc.legalMonetaryTotal.taxInclusiveAmount = taxExclusiveAmount + taxTotal.taxAmount
+      if (invoiceDoc.withholdingTaxTotal && invoiceDoc.withholdingTaxTotal.length > 0) {
+        let tevkifat = invoiceDoc.withholdingTaxTotal.reduce((acc, e) => acc += e.taxAmount, 0)
+        console.log(`invoiceDoc.withholdingTaxTotal:`, invoiceDoc.withholdingTaxTotal)
+        console.log(`tevkifat:`, tevkifat)
+
+        // console.log(`tevkifat:`, tevkifat)
+        if (tevkifat > 0) {
+          invoiceDoc.legalMonetaryTotal.taxInclusiveAmount -= tevkifat
+        }
+
+      }
 
       invoiceDoc.save()
         .then(resolve)
