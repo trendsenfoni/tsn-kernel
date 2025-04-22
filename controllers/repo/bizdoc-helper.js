@@ -145,7 +145,8 @@ exports.updateInvoice = function (dbModel, invoiceId) {
         }
 
       }
-
+      invoiceDoc.lineCountNumeric = lines.length
+      await dbModel.invoiceLines.updateMany({ invoice: invoiceId }, { $set: { currency: invoiceDoc.currency } }, { multi: true })
       invoiceDoc.save()
         .then(resolve)
         .catch(reject)

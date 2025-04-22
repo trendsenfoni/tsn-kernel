@@ -39,6 +39,7 @@ function getList(dbModel, sessionDoc, req) {
     let options = {
       page: req.query.page || 1,
       limit: req.query.pageSize || 10,
+      sort: { name: 1 }
     }
     let filter = {}
     if (req.query.passive != undefined) {
